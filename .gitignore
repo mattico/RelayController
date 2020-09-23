@@ -1,0 +1,17 @@
+*.txt
+*.csv
+*.xls
+*.xlsx
+*.bak
+*.kicad_pcb-bak
+*.sch-bak
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.xml
+*.log
+_autosave*
+JLCPCB-*
+Code/Debug/
+Code/Release/

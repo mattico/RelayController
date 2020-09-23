@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name RelayController)(type KiCad)(uri ${KIPRJMOD}/RelayController.pretty)(options "")(descr ""))
+)
