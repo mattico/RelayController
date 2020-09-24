@@ -87,6 +87,11 @@ enum GpioState get_state(struct DebouncedGpio* pin) {
     return TRANSITIONING;
 }
 
+void reset(struct DebouncedGpio* pin) {
+	pin->active_counts = 0;
+	pin->inactive_counts = 0;
+}
+
 void enable_relay() {
     HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
@@ -130,14 +135,18 @@ int main(void)
   struct DebouncedGpio button = {
       .pin = BUTTON_Pin,
       .port = BUTTON_GPIO_Port,
+	  .active_counts = 0,
       .active_counts_required = 20,
+	  .inactive_counts = 0,
       .inactive_counts_required = 20,
       .active_state = GPIO_PIN_RESET,
   };
   struct DebouncedGpio audio_en = {
       .pin = AUDIO_EN_Pin,
       .port = AUDIO_EN_GPIO_Port,
+	  .active_counts = 0,
       .active_counts_required = 20,
+	  .inactive_counts = 0,
       .inactive_counts_required = 60 * 1000,
       .active_state = GPIO_PIN_RESET,
   };
@@ -151,6 +160,7 @@ int main(void)
   {
 	  enum GpioState btn = get_state(&button);
 	  if (btn == ACTIVE && button_state == false) {
+		  reset(&audio_en);
 		  button_state = true;
 		  if (relay_state) {
 			  relay_state = false;
@@ -230,7 +240,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, RELAY_1_Pin|RELAY_2_Pin|LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, RELAY_1_Pin|RELAY_2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : RELAY_1_Pin RELAY_2_Pin */
   GPIO_InitStruct.Pin = RELAY_1_Pin|RELAY_2_Pin;
