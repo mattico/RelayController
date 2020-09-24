@@ -89,12 +89,12 @@ enum GpioState get_state(struct DebouncedGpio* pin) {
 
 void enable_relay() {
     HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 }
 
 void disable_relay() {
     HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 }
 /* USER CODE END 0 */
 
@@ -149,30 +149,30 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      enum GpioState btn = get_state(&button);
-      if (btn == ACTIVE && button_state == false) {
-          button_state = true;
-          if (relay_state) {
-              relay_state = false;
-              disable_relay();
-          } else {
-              relay_state = true;
-              enable_relay();
-          }
-      } else if (btn == INACTIVE && button_state == true) {
-          button_state = false;
-      }
+	  enum GpioState btn = get_state(&button);
+	  if (btn == ACTIVE && button_state == false) {
+		  button_state = true;
+		  if (relay_state) {
+			  relay_state = false;
+			  disable_relay();
+		  } else {
+			  relay_state = true;
+			  enable_relay();
+		  }
+	  } else if (btn == INACTIVE && button_state == true) {
+		  button_state = false;
+	  }
 
-      enum GpioState aud_en = get_state(&audio_en);
-      if (aud_en == ACTIVE && relay_state == false) {
-          relay_state = true;
-          enable_relay();
-      } else if (aud_en == INACTIVE && relay_state == true) {
-          relay_state = false;
-          disable_relay();
-      }
+	  enum GpioState aud_en = get_state(&audio_en);
+	  if (aud_en == ACTIVE && relay_state == false) {
+		  relay_state = true;
+		  enable_relay();
+	  } else if (aud_en == INACTIVE && relay_state == true) {
+		  relay_state = false;
+		  disable_relay();
+	  }
 
-      HAL_Delay(1);
+	  HAL_Delay(1);
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
   }
