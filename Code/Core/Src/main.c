@@ -92,14 +92,39 @@ void reset(struct DebouncedGpio* pin) {
 	pin->inactive_counts = 0;
 }
 
-void enable_relay() {
-    HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+
+enum RelayState {
+    DISABLED,
+    AUDIO,
+    BUTTON,
+};
+
+struct Relay {
+    uint16_t pin;
+    GPIO_TypeDef* port;
+    uint16_t led_pin;
+    GPIO_TypeDef* led_port;
+    uint32_t disabled_for;
+    enum RelayState state;
+};
+
+void enable_relay(struct Relay* relay, bool audio) {
+    if (audio && relay->disabled_for != 0) return;
+    HAL_GPIO_WritePin(relay->port, relay->pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(relay->led_port, relay->led_pin, GPIO_PIN_RESET);
+    relay->state = audio ? AUDIO : BUTTON;
 }
 
-void disable_relay() {
-    HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+void disable_relay(struct Relay* relay) {
+    HAL_GPIO_WritePin(relay->port, relay->pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(relay->led_port, relay->led_pin, GPIO_PIN_SET);
+    relay->disabled_for = 4 * 1000;
+    relay->state = DISABLED;
+}
+
+void poll_relay(struct Relay* relay) {
+    if (relay->disabled_for > 0)
+        relay->disabled_for--;
 }
 /* USER CODE END 0 */
 
@@ -150,7 +175,15 @@ int main(void)
       .inactive_counts_required = 60 * 1000,
       .active_state = GPIO_PIN_RESET,
   };
-  bool relay_state = false;
+  struct Relay relay = {
+      .pin = RELAY_1_Pin,
+      .port = RELAY_1_GPIO_Port,
+      .led_pin = LED_Pin,
+      .led_port = LED_GPIO_Port,
+      .disabled_for = 1000,
+      .state = DISABLED,
+  };
+
   bool button_state = false;
   /* USER CODE END 2 */
 
@@ -158,29 +191,27 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      poll_relay(&relay);
+
 	  enum GpioState btn = get_state(&button);
 	  if (btn == ACTIVE && button_state == false) {
 		  reset(&audio_en);
 		  button_state = true;
-		  if (relay_state) {
-			  relay_state = false;
-			  disable_relay();
+		  if (relay.state) {
+			  disable_relay(&relay);
 		  } else {
-			  relay_state = true;
-			  enable_relay();
+			  enable_relay(&relay, false);
 		  }
 	  } else if (btn == INACTIVE && button_state == true) {
 		  button_state = false;
 	  }
 
 	  enum GpioState aud_en = get_state(&audio_en);
-	  if (aud_en == ACTIVE && relay_state == false) {
-		  relay_state = true;
-		  enable_relay();
-	  } else if (aud_en == INACTIVE && relay_state == true) {
-		  relay_state = false;
-		  disable_relay();
-	  }
+      if (aud_en == ACTIVE && relay.state == DISABLED) {
+          enable_relay(&relay, true);
+      } else if (aud_en == INACTIVE && relay.state == AUDIO) {
+          disable_relay(&relay);
+      }
 
 	  HAL_Delay(1);
     /* USER CODE END WHILE */
